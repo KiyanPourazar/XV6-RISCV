@@ -1,4 +1,9 @@
 struct stat;
+struct child_processes;
+struct report_traps;
+struct proc_info;
+struct report;
+enum procstate;
 
 // system calls
 int fork(void);
@@ -22,6 +27,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int childproc(struct child_processes*);
+int trapreport(struct report_traps*);
 
 // ulib.c
 int stat(const char*, struct stat*);

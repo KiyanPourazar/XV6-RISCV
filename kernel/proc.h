@@ -1,3 +1,6 @@
+#define MAX_PARENT 10
+#define MAX_REPORT_BUFFER_SIZE 10
+#define TRAP_HISTORY_FILE "trapreport_htr"
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -105,3 +108,46 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
+struct proc_info {
+  char name[16];
+  int pid;
+  int ppid;
+  enum procstate state;
+};
+
+struct child_processes {
+  int count;
+  struct proc_info processes[NPROC];
+};
+
+struct report {
+  int ppid[MAX_PARENT];
+  int pcount;
+  char pname[16];
+  int pid;
+  uint64 scause;
+  uint64 sepc;
+  uint64 stval;
+};
+
+struct report_traps {
+  struct report reports[MAX_REPORT_BUFFER_SIZE];
+  int count;
+};
+
+#ifndef PROC_H
+#define PROC_H
+// Define the structure type for the internal report list
+struct internal_report_list {
+    struct spinlock lock;
+    struct report reports[MAX_REPORT_BUFFER_SIZE];
+    int numberOfReports;
+    int writeIndex;
+};
+
+// Declare the variable as extern
+extern struct internal_report_list _internal_report_list;  // Declare as extern
+
+
+#endif // PROC_H

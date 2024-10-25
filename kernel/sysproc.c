@@ -91,3 +91,39 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//return child && grand child of one process
+uint64
+sys_childproc(void)
+{
+  struct child_processes result_children;
+  struct child_processes* children;
+  argaddr(0, (uint64 *)&children);
+
+  int e = childproc(&result_children);
+
+  struct proc *p = myproc();
+
+  if(copyout(p->pagetable, (uint64)children, (char*)&result_children, sizeof(result_children)) < 0){
+    return -1;
+  }
+  return e;
+}
+
+//returns trap reports of children and grand childrens of a process
+uint64
+sys_trapreport(void)
+{
+  struct report_traps* reports;
+  struct report_traps result_reports;
+  argaddr(0, (uint64 *)&reports);
+
+  int e = trapreport(&result_reports);
+
+  struct proc *p = myproc();
+
+  if(copyout(p->pagetable, (uint64)reports, (char*)&result_reports, sizeof(result_reports)) < 0){
+    return -1;
+  }
+  return e;
+}

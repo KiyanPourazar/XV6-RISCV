@@ -26,6 +26,103 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+struct internal_report_list _internal_report_list;
+
+// Function to find child and grandchild processes
+int
+find_child_processes(struct proc** child_processes, struct proc* target_process)
+{
+  int child_count = 0;
+  for (struct proc* current_process = proc; current_process < &proc[NPROC]; current_process++) {
+    struct proc* parent_process = current_process->parent;
+    while (parent_process != 0) {
+      if (parent_process->pid == target_process->pid) {
+        child_processes[child_count++] = current_process;
+        break;
+      }
+      parent_process = parent_process->parent;
+    }
+  }
+  return child_count;
+}
+
+// Main function to get child and grandchild processes
+int
+child_ps(struct proc** child_processes)
+{
+  struct proc* current_process = myproc();
+  acquire(&current_process->lock);
+  int child_count = find_child_processes(child_processes, current_process);
+  release(&current_process->lock);
+  return child_count;
+}
+
+// Function to generate trap reports of children and grandchildren of a process
+
+// Check if a report is for the specified process
+int
+is_report_for_process(struct report* report_entry, int process_pid)
+{
+  for (int j = 0; j < report_entry->pcount; j++) {
+    if (report_entry->ppid[j] == process_pid) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+// Populate the report list with reports relevant to the specified process
+void
+populate_report_list(struct report_traps* report_list, int process_pid, int report_count)
+{
+  report_list->count = 0;
+
+  for (int i = 0; i < report_count; i++) {
+    struct report* internal_report = &_internal_report_list.reports[i];
+    if (is_report_for_process(internal_report, process_pid)) {
+      report_list->reports[report_list->count++] = *internal_report;
+    }
+  }
+}
+
+// Main function to handle trap reports for child and grandchild processes
+int
+trapreport(struct report_traps* report_list)
+{
+  int report_count = _internal_report_list.writeIndex;
+  if (report_count == 0) {
+    report_count = MAX_REPORT_BUFFER_SIZE;
+  }
+
+  struct proc* current_process = myproc();
+  populate_report_list(report_list, current_process->pid, report_count);
+
+  return 0;
+}
+
+
+// Function to gather child process details into a structured list
+int
+childproc(struct child_processes* child_process_list)
+{
+  struct proc* child_process_array[NPROC];
+  child_process_list->count = child_ps(child_process_array);
+
+  for (int i = 0; i < child_process_list->count; i++) {
+    struct proc* child_process = child_process_array[i];
+    struct proc_info process_info;
+
+    strncpy(process_info.name, child_process->name, 16);
+    process_info.pid = child_process->pid;
+    process_info.ppid = (child_process->parent != 0) ? child_process->parent->pid : 0;
+    process_info.state = child_process->state;
+
+    child_process_list->processes[i] = process_info;
+  }
+  return 0;
+}
+
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.

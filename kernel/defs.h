@@ -8,6 +8,9 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct proc_info;
+struct child_processes;
+struct report_traps;
 
 // bio.c
 void            binit(void);
@@ -33,6 +36,7 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+int             fileappend(char *filename, void *data, int struct_size);
 
 // fs.c
 void            fsinit(int);
@@ -106,6 +110,8 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+int             childproc(struct child_processes*);
+int             trapreport(struct report_traps*);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
