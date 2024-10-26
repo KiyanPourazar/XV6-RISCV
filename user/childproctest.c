@@ -1,4 +1,4 @@
-//A Simple C program 
+// C Program to Track Child Processes
 #include "kernel/types.h"
 #include "kernel/param.h"
 #include "kernel/stat.h"
@@ -7,70 +7,58 @@
 #include "kernel/proc.h"
 #include "user/user.h"
 
-char* strState(enum procstate state);
+// Custom function to get process state as a string
+char* getProcState(enum procstate state);
 
-//passing command line arguments 
-int main(int argc, char *argv[]) 
-{
-
-for (int i = 0; i < 2; i++){
-    int p1 = fork();
-    if(p1 == 0){
-        int p2 = fork();
-        if (p2 == 0){
-            sleep(4);
-        }else{
-            wait((int *)0);
-            sleep(3);
+int main(int argc, char *argv[]) {
+    // Loop to create two process chains
+    for (int loopIdx = 0; loopIdx < 2; loopIdx++) {
+        int child1 = fork();
+        if (child1 == 0) {
+            int child2 = fork();
+            if (child2 == 0) {
+                sleep(4);  // Inner child sleeps
+            } else {
+                // Wait for inner child and then continue
+                wait((int *)0);
+                sleep(3);  // Mid-level child sleeps
+            }
+            exit(0);
         }
-        exit(0);
+    }
+
+    // Give the parent process a chance to gather child info
+    sleep(1);
+
+    struct child_processes childInfo;
+    int statusCode = childproc(&childInfo);
+    printf("List of child processes (%d):\nPID\tPPID\tSTATE\tNAME\n", childInfo.count);
+
+    for (int idx = 0; idx < childInfo.count; idx++) {
+        printf("%d\t%d\t%s\t%s\n", 
+               childInfo.processes[idx].pid, 
+               childInfo.processes[idx].ppid, 
+               getProcState(childInfo.processes[idx].state), 
+               childInfo.processes[idx].name);
+    }
+
+    // Wait for all first-level child processes
+    wait((int*)0);
+    wait((int*)0);
+
+    exit(statusCode);
+    return statusCode;
+}
+
+// Function to convert enum procstate to a readable string
+char* getProcState(enum procstate state) {
+    switch (state) {
+        case UNUSED:   return "UNUSED";
+        case USED:     return "USED";
+        case SLEEPING: return "SLEEPING";
+        case RUNNABLE: return "RUNNABLE";
+        case RUNNING:  return "RUNNING";
+        case ZOMBIE:   return "ZOMBIE";
+        default:       return "UNKNOWN";
     }
 }
-sleep(1);
-
-struct child_processes ch_ps;
-int e = childproc(&ch_ps);
-printf("These are child processes(%d):\nPID\tPPID\tSTATE\tNAME\n", ch_ps.count);
-for (int i = 0; i < ch_ps.count; i++){
-    printf("%d\t%d\t%s\t%s\n", ch_ps.processes[i].pid, ch_ps.processes[i].ppid, strState(ch_ps.processes[i].state), ch_ps.processes[i].name);
-}
-wait((int*)0);
-wait((int*)0);
-exit(e);
-return e;
-} 
-
-char* strState(enum procstate state){
-    switch (state)
-    {
-    case UNUSED:
-        return "UNUSED";
-        break;
-
-    case USED:
-        return "USED";
-        break;
-
-
-    case SLEEPING:
-        return "SLEEPING";
-        break;
-
-    case RUNNABLE:
-        return "RUNNABLE";
-        break;
-    
-    case RUNNING:
-        return "RUNNING";
-        break;
-
-    case ZOMBIE:
-        return "ZOMBIE";
-        break;
-    
-    default:
-        return "UKNOWN";
-        break;
-    }
-}
-

@@ -1,6 +1,5 @@
 #define MAX_PARENT 10
 #define MAX_REPORT_BUFFER_SIZE 10
-#define TRAP_HISTORY_FILE "trapreport_htr"
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
